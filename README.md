@@ -1,3 +1,3 @@
-# IRLOGI R Workshops
+# Time Series Analysis
 
-Planning the three workshops at IRLOGI 2017
+MS4128
