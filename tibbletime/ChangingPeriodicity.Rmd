@@ -1,0 +1,158 @@
+Changing periodicity
+Davis Vaughan
+2018-01-30
+Introducing as_period()
+Datasets required
+Daily to monthly
+Generic periods
+Details and the start_date argument
+The side argument
+Grouped datasets
+Introducing as_period()
+Often with time series you want to aggregate your dataset to a less granular period. An example of this might be moving from a daily series to a monthly series to look at broader trends in your data. as_period() allows you to do exactly this.
+The period argument in as_period() for specifying the transformation you want is a character with a general format of "frequency period" where frequency is a number like 1 or 2, and period is an interval like weekly or yearly. There must be a space between the two.
+Datasets required
+library(tibbletime)
+library(dplyr)
+
+# Facebook stock prices.
+data(FB)
+
+# Convert FB to tbl_time
+FB <- as_tbl_time(FB, index = date)
+
+# FANG stock prices
+data(FANG)
+
+# Convert FANG to tbl_time and group
+FANG <- as_tbl_time(FANG, index = date) %>%
+  group_by(symbol)
+Daily to monthly
+To see this in action, transform the daily FB data set to monthly data.
+as_period(FB, '1 month')
+## # A time tibble: 48 x 8
+## # Index: date
+##    symbol date        open  high   low close    volume adjusted
+##    <chr>  <date>     <dbl> <dbl> <dbl> <dbl>     <dbl>    <dbl>
+##  1 FB     2013-01-02  27.4  28.2  27.4  28.0  69846400     28.0
+##  2 FB     2013-02-01  31.0  31.0  29.6  29.7  85856700     29.7
+##  3 FB     2013-03-01  27.0  28.1  26.8  27.8  54064800     27.8
+##  4 FB     2013-04-01  25.6  25.9  25.3  25.5  22249300     25.5
+##  5 FB     2013-05-01  27.8  27.9  27.3  27.4  64567600     27.4
+##  6 FB     2013-06-03  24.3  24.3  23.7  23.8  35733800     23.8
+##  7 FB     2013-07-01  25.0  25.1  24.6  24.8  20582200     24.8
+##  8 FB     2013-08-01  37.3  38.3  36.9  37.5 106066500     37.5
+##  9 FB     2013-09-03  41.8  42.2  41.5  41.9  48774900     41.9
+## 10 FB     2013-10-01  50.0  51.0  49.5  50.4  98114000     50.4
+## # ... with 38 more rows
+# Additionally, the following are equivalent
+# as_period(FB, 'monthly')
+# as_period(FB, 'm')
+# as_period(FB, '1 m')
+Generic periods
+You aren’t restricted to only 1 month periods. Maybe you wanted every 2 months?
+as_period(FB, '2 m')
+## # A time tibble: 24 x 8
+## # Index: date
+##    symbol date        open  high   low close   volume adjusted
+##    <chr>  <date>     <dbl> <dbl> <dbl> <dbl>    <dbl>    <dbl>
+##  1 FB     2013-01-02  27.4  28.2  27.4  28.0 69846400     28.0
+##  2 FB     2013-03-01  27.0  28.1  26.8  27.8 54064800     27.8
+##  3 FB     2013-05-01  27.8  27.9  27.3  27.4 64567600     27.4
+##  4 FB     2013-07-01  25.0  25.1  24.6  24.8 20582200     24.8
+##  5 FB     2013-09-03  41.8  42.2  41.5  41.9 48774900     41.9
+##  6 FB     2013-11-01  50.8  52.1  49.7  49.8 95033000     49.8
+##  7 FB     2014-01-02  54.8  55.2  54.2  54.7 43195500     54.7
+##  8 FB     2014-03-03  67.0  68.1  66.5  67.4 56824100     67.4
+##  9 FB     2014-05-01  60.4  62.3  60.2  61.2 82429000     61.2
+## 10 FB     2014-07-01  67.6  68.4  67.4  68.1 33243000     68.1
+## # ... with 14 more rows
+Or maybe every 25 days? Note that the dates do not line up exactly with a difference of 25 days. This is due to the data set not being completely regular (there are gaps due to weekends and holidays). as_period() chooses the first date it can find in the period specified.
+as_period(FB, '25 d')
+## # A time tibble: 59 x 8
+## # Index: date
+##    symbol date        open  high   low close   volume adjusted
+##    <chr>  <date>     <dbl> <dbl> <dbl> <dbl>    <dbl>    <dbl>
+##  1 FB     2013-01-02  27.4  28.2  27.4  28.0 69846400     28.0
+##  2 FB     2013-01-28  31.9  32.5  31.8  32.5 59682500     32.5
+##  3 FB     2013-02-20  28.9  29.0  28.3  28.5 42098200     28.5
+##  4 FB     2013-03-18  26.4  26.8  25.8  26.5 26653700     26.5
+##  5 FB     2013-04-11  27.5  28.1  27.2  28.0 33368500     28.0
+##  6 FB     2013-05-06  28.3  28.5  27.5  27.6 43939400     27.6
+##  7 FB     2013-05-31  24.6  25.0  24.3  24.4 35925000     24.4
+##  8 FB     2013-06-25  24.1  24.4  24.0  24.2 24713200     24.2
+##  9 FB     2013-07-22  26.0  26.1  25.7  26.0 27526300     26.0
+## 10 FB     2013-08-14  36.8  37.5  36.6  36.7 48423900     36.7
+## # ... with 49 more rows
+Details and the start_date argument
+By default, the date that starts the first group is calculated as:
+Find the minimum date in your dataset.
+Floor that date to the period that you specified.
+In the 1 month example above, 2013-01-02 is the first date in the series, and because “monthly” was chosen, the first group is defined as (2013-01-01 to 2013-01-31).
+Occasionally this is not what you want. Consider what would happen if you changed the period to “every 2 days”. The first date is 2013-01-02, but because “daily” is chosen, this isn’t floored to 2013-01-01 so the groups are (2013-01-02, 2013-01-03), (2013-01-04, 2013-01-05) and so on. If you wanted the first group to be (2013-01-01, 2013-01-02), you can use the start_date argument.
+# Without start_date
+as_period(FB, '2 d')
+## # A time tibble: 619 x 8
+## # Index: date
+##    symbol date        open  high   low close    volume adjusted
+##    <chr>  <date>     <dbl> <dbl> <dbl> <dbl>     <dbl>    <dbl>
+##  1 FB     2013-01-02  27.4  28.2  27.4  28.0  69846400     28.0
+##  2 FB     2013-01-03  27.9  28.5  27.6  27.8  63140600     27.8
+##  3 FB     2013-01-07  28.7  29.8  28.6  29.4  83781800     29.4
+##  4 FB     2013-01-09  29.7  30.6  29.5  30.6 104787700     30.6
+##  5 FB     2013-01-11  31.3  32.0  31.1  31.7  89598000     31.7
+##  6 FB     2013-01-14  32.1  32.2  30.6  31.0  98892800     31.0
+##  7 FB     2013-01-15  30.6  31.7  29.9  30.1 173242600     30.1
+##  8 FB     2013-01-17  30.1  30.4  30.0  30.1  40256700     30.1
+##  9 FB     2013-01-22  29.8  30.9  29.7  30.7  55243300     30.7
+## 10 FB     2013-01-23  31.1  31.5  30.8  30.8  48899800     30.8
+## # ... with 609 more rows
+# With start_date
+as_period(FB, '2 d', start_date = "2013-01-01")
+## # A time tibble: 619 x 8
+## # Index: date
+##    symbol date        open  high   low close    volume adjusted
+##    <chr>  <date>     <dbl> <dbl> <dbl> <dbl>     <dbl>    <dbl>
+##  1 FB     2013-01-02  27.4  28.2  27.4  28.0  69846400     28.0
+##  2 FB     2013-01-03  27.9  28.5  27.6  27.8  63140600     27.8
+##  3 FB     2013-01-07  28.7  29.8  28.6  29.4  83781800     29.4
+##  4 FB     2013-01-09  29.7  30.6  29.5  30.6 104787700     30.6
+##  5 FB     2013-01-11  31.3  32.0  31.1  31.7  89598000     31.7
+##  6 FB     2013-01-14  32.1  32.2  30.6  31.0  98892800     31.0
+##  7 FB     2013-01-15  30.6  31.7  29.9  30.1 173242600     30.1
+##  8 FB     2013-01-17  30.1  30.4  30.0  30.1  40256700     30.1
+##  9 FB     2013-01-22  29.8  30.9  29.7  30.7  55243300     30.7
+## 10 FB     2013-01-23  31.1  31.5  30.8  30.8  48899800     30.8
+## # ... with 609 more rows
+The side argument
+By default, the first date per period is returned. If you want the end of each period instead, specify the side = "end" argument.
+as_period(FB, 'y', side = "end")
+## # A time tibble: 4 x 8
+## # Index: date
+##   symbol date        open  high   low close   volume adjusted
+##   <chr>  <date>     <dbl> <dbl> <dbl> <dbl>    <dbl>    <dbl>
+## 1 FB     2013-12-31  54.1  54.9  53.9  54.7 43076200     54.7
+## 2 FB     2014-12-31  79.5  79.8  77.9  78.0 19935400     78.0
+## 3 FB     2015-12-31 106   106   105   105   18298700    105  
+## 4 FB     2016-12-30 117   117   115   115   18600100    115
+Grouped datasets
+One of the neat things about working in the tidyverse is that these functions can also work with grouped datasets. Here we transform the daily series of the 4 FANG stocks to a periodicity of every 2 years.
+FANG %>%
+  as_period('2 y')
+## # A time tibble: 12 x 8
+## # Index:  date
+## # Groups: symbol [4]
+##    symbol date         open   high    low  close   volume adjusted
+##    <chr>  <date>      <dbl>  <dbl>  <dbl>  <dbl>    <dbl>    <dbl>
+##  1 FB     2013-01-02   27.4   28.2   27.4   28.0 69846400     28.0
+##  2 FB     2014-01-02   54.8   55.2   54.2   54.7 43195500     54.7
+##  3 FB     2016-01-04  102    102     99.8  102   37912400    102  
+##  4 AMZN   2013-01-02  256    258    253    257    3271000    257  
+##  5 AMZN   2014-01-02  399    399    394    398    2137800    398  
+##  6 AMZN   2016-01-04  656    658    628    637    9314500    637  
+##  7 NFLX   2013-01-02   95.2   95.8   90.7   92.0 19431300     13.1
+##  8 NFLX   2014-01-02  367    368    361    363   12325600     51.8
+##  9 NFLX   2016-01-04  109    110    105    110   20794800    110  
+## 10 GOOG   2013-01-02  719    727    717    723    5101500    361  
+## 11 GOOG   2014-01-02 1115   1118   1108   1113    3656400    556  
+## 12 GOOG   2016-01-04  743    744    731    742    3272800    742
