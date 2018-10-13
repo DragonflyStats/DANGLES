@@ -1,3 +1,3 @@
-# Time Series Analysis
+# Maths Resource Calculus: Differential Equations
 
-MS4128
+Differential Equations
